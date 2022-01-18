@@ -1,0 +1,24 @@
+{
+    "name": "jazor/httpclient",
+    "type": "library",
+    "description": "httpclient for php",
+    "keywords": ["http","jazor"],
+    "homepage": "https://github.com/cook-code-jazor/httpclient",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "anlige",
+            "email": "zhanghuiguoanlige@126.com",
+            "homepage": "https://github.com/cook-code-jazor/httpclient"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Jazor\\Http\\": "./src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
