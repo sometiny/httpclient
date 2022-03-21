@@ -8,7 +8,7 @@ use Jazor\Http\Cookies\CookieContainer;
 
 abstract class Transporter
 {
-    protected int $timeout = 90;
+    protected int $timeout = 15;
     protected bool $sslVerifyPeer = false;
     protected bool $sslVerifyHost = true;
     protected bool $followLocation = true;
@@ -35,7 +35,7 @@ abstract class Transporter
 
         $options = $this->options;
 
-        $this->timeout = $options['timeout'] ?? 90;
+        $this->timeout = $options['timeout'] ?? 15;
         $this->followLocation = $options['followLocation'] ?? true;
         $this->sslVerifyPeer = $options['sslVerifyPeer'] ?? true;
         $this->sslVerifyHost = $options['sslVerifyHost'] ?? true;
