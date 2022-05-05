@@ -14,7 +14,7 @@
     ],
     "require": {
         "php": ">=7.4",
-        "jazor/core" : "dev-master"
+        "jazor/core" : ">=1.0.0"
     },
     "autoload": {
         "psr-4": {
