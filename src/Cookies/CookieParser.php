@@ -45,7 +45,10 @@ class CookieParser
         if(isset($components['expires'])){
             $date = \DateTime::createFromFormat(DATE_COOKIE, $components['expires']);
             if($date === false){
-                throw new \Exception('date parse error: \'' . $components['expires'] . '\'');
+                $date = \DateTime::createFromFormat(DATE_RFC7231, $components['expires']);
+                if($date === false){
+                    throw new \Exception('date parse error: \'' . $components['expires'] . '\'');
+                }
             }
             $expires = $date->getTimestamp();
         }
