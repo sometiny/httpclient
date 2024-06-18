@@ -133,4 +133,8 @@ abstract class Transporter
     {
         return $this->cookieContainer;
     }
+    public function getClient()
+    {
+        return null;
+    }
 }

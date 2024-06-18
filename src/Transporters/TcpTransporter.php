@@ -13,7 +13,7 @@ use Jazor\Uri;
 class TcpTransporter extends Transporter
 {
 
-    private $client = null;
+    private $client;
 
     /**
      * TcpTransporter constructor.
@@ -142,60 +142,13 @@ class TcpTransporter extends Transporter
             if ($line === false) {
                 throw new \Exception('remote disconnect');
             }
-            if ($line == "\r\n") break;
+            if ($line == "\r\n") {
+                $headers[] = '';
+                break;
+            }
             $headers[] = trim($line);
         }
         return $headers;
-    }
-
-    /**
-     * @return int
-     * @throws \Exception
-     */
-    private function readNextChunk()
-    {
-        $header = fgets($this->client);
-        if ($header === false) throw new \Exception('remote disconnect');
-        $length = strstr($header, ' ', true);
-        if ($length !== false) {
-            $header = $length;
-        }
-        if ($header === '0') return 0;
-        return intval($header, 16);
-    }
-
-    /**
-     * @return string
-     * @throws \Exception
-     */
-    private function readChunked()
-    {
-        $body = '';
-        while (($length = $this->readNextChunk()) > 0) {
-            $body .= $this->readLengthBody($length);
-            fgets($this->client);
-        }
-        fgets($this->client);
-        return $body;
-    }
-
-    /**
-     * @param $length
-     * @return string
-     * @throws \Exception
-     */
-    private function readLengthBody($length)
-    {
-
-        $body = '';
-        while ($length > 0) {
-            $block = fread($this->client, $length);
-            if ($block === false) throw new \Exception('remote disconnect');
-
-            $length -= strlen($block);
-            $body .= $block;
-        }
-        return $body;
     }
 
     /**
@@ -206,50 +159,24 @@ class TcpTransporter extends Transporter
     public function getResponse(Request $request): Response
     {
         $headers = $this->readResponseHeaders();
-        $response = new Response($headers);
+        $response = new Response($headers, $request, $this);
         $transferEncoding = $response->getTransferEncoding();
         $contentLength = $response->getContentLength();
-        $contentEncoding = $response->getContentEncoding();
 
         $cookies = $response->getHeader('Set-Cookie');
         if($cookies != null) {
             $this->cookieContainer->setCookies($request->getUri(), $cookies);
         }
-
-
         if (empty($transferEncoding) && $contentLength === -1) {
-            throw new \Exception('server response error data? expect TransferEncoding or ContentLength');
+            throw new \Exception('server response error data? expect TransferEncoding or ContentLength' . implode("\r\n", $headers));
         }
-
-        if (!empty($transferEncoding)) {
-            if (strtolower($transferEncoding) !== 'chunked') {
-                throw new \Exception(sprintf('except TransferEncoding: chunked, specified: %s', $transferEncoding));
-            }
-            $body = $this->readChunked();
-        } else {
-            $body = $this->readLengthBody($contentLength);
+        if (!empty($transferEncoding) && strtolower($transferEncoding) !== 'chunked') {
+            throw new \Exception(sprintf('except TransferEncoding: chunked, specified: %s', $transferEncoding));
         }
-
-        $this->clearUp();
-
-        if (empty($contentEncoding)) {
-            $response->setBody($body);
-            return $response;
-        }
-        $contentEncoding = strtolower($contentEncoding);
-
-        if ($contentEncoding == 'gzip') $body = gzdecode($body);
-        else if ($contentEncoding == 'deflate') $body = gzinflate($body);
-
-        if ($body === false) {
-            throw new \Exception('can not decompress response datas');
-        }
-
-        $response->setBody($body);
         return $response;
     }
 
-    private function clearUp()
+    public function clearUp()
     {
         if ($this->client !== null) {
             fclose($this->client);
@@ -260,5 +187,11 @@ class TcpTransporter extends Transporter
     public function __destruct()
     {
         $this->clearUp();
+    }
+
+    public function getClient()
+    {
+        if($this->client == null) throw new \Exception('connection has been closed!');
+        return $this->client;
     }
 }

@@ -16,6 +16,11 @@ class Headers
         return $this->contentType;
     }
 
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
+
     protected function prepareHeaders()
     {
         $header = $this->getSingletHeader('Content-Type');
@@ -35,10 +40,10 @@ class Headers
         if($idx === false) return $this;
 
         if($idx === strlen($line) -1){
-            $this->addHeader(ucwords(substr($line, 0, $idx), '-'), '');
+            $this->addHeader(substr($line, 0, $idx), '');
             return $this;
         }
-        $this->addHeader(ucwords(substr($line, 0, $idx), '-'), trim(substr($line, $idx + 1)));
+        $this->addHeader(substr($line, 0, $idx), trim(substr($line, $idx + 1)));
         return $this;
     }
 
@@ -49,6 +54,7 @@ class Headers
      */
     public function addHeader(string $name, ?string $value)
     {
+        $name = ucwords($name, '-');
         if (!isset($this->headers[$name])) {
             $this->headers[$name] = $value === null ? [] : [$value];
             return $this;
@@ -65,6 +71,7 @@ class Headers
      */
     public function setHeader(string $name, ?string $value)
     {
+        $name = ucwords($name, '-');
         $this->headers[$name] = $value === null ? [] : [$value];
         return $this;
     }
@@ -75,6 +82,7 @@ class Headers
      */
     public function removeHeader(string $name)
     {
+        $name = ucwords($name, '-');
         unset($this->headers[$name]);
         return $this;
     }
@@ -85,6 +93,7 @@ class Headers
      */
     public function getHeader(string $name): ?array
     {
+        $name = ucwords($name, '-');
         return $this->headers[$name] ?? null;
     }
 
@@ -94,6 +103,7 @@ class Headers
      */
     public function getSingletHeader($name)
     {
+        $name = ucwords($name, '-');
         if(!isset($this->headers[$name])) return null;
         return $this->headers[$name][0];
     }
