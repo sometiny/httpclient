@@ -4,6 +4,7 @@
 namespace Jazor\Http;
 
 use Jazor\UnexpectedException;
+use Jazor\WebFarm\HttpStatus;
 
 class Response extends Headers
 {
@@ -13,19 +14,16 @@ class Response extends Headers
     private ?string $body = null;
     private ?string $location = null;
     private ?string $allResponseHeaders = null;
-    private ?string $transferEncoding = null;
     private ?string $vary = null;
-    private ?string $contentEncoding = null;
-    private int $contentLength = -1;
-    private Transporter $transporter;
-    private Request $request;
+    private ?Transporter $transporter;
+    private ?Request $request;
 
     /**
      * Response constructor.
      * @param string|array $headers
      * @throws UnexpectedException
      */
-    public function __construct($headers, Request $request, Transporter $transporter)
+    public function __construct($headers, ?Request $request, ?Transporter $transporter)
     {
         if(is_array($headers)){
             $this->allResponseHeaders = implode("\r\n", $headers) . "\r\n";
@@ -53,18 +51,8 @@ class Response extends Headers
         $header = $this->getSingletHeader('Location');
         if ($header !== null) $this->location = $header;
 
-        $header = $this->getSingletHeader('Transfer-Encoding');
-        if ($header !== null) $this->transferEncoding = $header;
-
         $header = $this->getSingletHeader('Vary');
         if ($header !== null) $this->vary = $header;
-
-        $header = $this->getSingletHeader('Content-Encoding');
-        if ($header !== null) $this->contentEncoding = $header;
-
-        $header = $this->getSingletHeader('Content-Length');
-
-        if ($header !== null) $this->contentLength = intval($header);
     }
 
     /**
@@ -81,7 +69,7 @@ class Response extends Headers
             if(preg_match('/^(HTTP\/[0-9.]+?) ([0-9]+)(?: (.+))?/', $line, $match)){
                 $this->httpVersion = $match[1];
                 $this->statusCode = intval($match[2]);
-                $this->statusText = $match[3];
+                $this->statusText = $match[3] ?? HttpStatus::getStatus($this->statusCode);
                 return $i;
             }
         }
@@ -147,6 +135,7 @@ class Response extends Headers
      */
     public function getBody(): ?string
     {
+        if($this->body !== null) return $this->body;
         $transferEncoding = $this->getTransferEncoding();
         $contentLength = $this->getContentLength();
         $contentEncoding = $this->getContentEncoding();
@@ -188,7 +177,7 @@ class Response extends Headers
      */
     public function getJson(int $options = 0): ?array
     {
-        $result = json_decode($this->body, true, 512, $options);
+        $result = json_decode($this->getBody(), true, 512, $options);
 
         if($result === false){
             throw new \Exception('json decode failed');
@@ -245,32 +234,8 @@ class Response extends Headers
     /**
      * @return string|null
      */
-    public function getTransferEncoding(): ?string
-    {
-        return $this->transferEncoding;
-    }
-
-    /**
-     * @return string|null
-     */
     public function getVary(): ?string
     {
         return $this->vary;
-    }
-
-    /**
-     * @return string|null
-     */
-    public function getContentEncoding(): ?string
-    {
-        return $this->contentEncoding;
-    }
-
-    /**
-     * @return int
-     */
-    public function getContentLength(): int
-    {
-        return $this->contentLength;
     }
 }
