@@ -17,11 +17,21 @@ class CurlTransporter extends Transporter
      */
     public function execute(Request $request): Response
     {
+        $proxy = $this->options['proxy'] ?? null;
+        $direct = $this->options['direct'] ?? null;
+        $proxy_type = $this->options['proxy_type'] ?? 'none';
+
+
 
         $uri = $request->getUri();
         $method = $request->getMethod();
         $fp = curl_init();
 
+        if($proxy_type === 'direct') {
+            if (!empty($direct)) {
+                curl_setopt($fp, CURLOPT_CONNECT_TO, (array)$direct);
+            }
+        }
         curl_setopt($fp, CURLOPT_URL, $uri->getUrl());
         curl_setopt($fp, CURLOPT_HEADER, true);
         curl_setopt($fp, CURLOPT_RETURNTRANSFER, true);
@@ -34,6 +44,20 @@ class CurlTransporter extends Transporter
 
         curl_setopt($fp, CURLOPT_CUSTOMREQUEST, strtoupper($method));
 
+        if($proxy_type === 'proxy') {
+            if (!empty($proxy)) {
+                curl_setopt($fp, CURLOPT_PROXY, $proxy);
+                if (strpos($proxy, 'https://') !== false
+                    || strpos($proxy, 'http://') !== false) {
+                    if (strpos($proxy, 'https://') !== false) {
+                        curl_setopt($fp, CURLOPT_PROXY_SSL_VERIFYHOST, 0);
+                        curl_setopt($fp, CURLOPT_PROXY_SSL_VERIFYPEER, 0);
+                    }
+                    curl_setopt($fp, CURLOPT_HTTPPROXYTUNNEL, 1);
+                }
+            }
+        }
+
         $headers = $request->getAllHeadersArray();
         $body = $request->getBody($this);
         if ($body != null) {
@@ -45,8 +69,10 @@ class CurlTransporter extends Transporter
 
         $body = curl_exec($fp);
         if ($body === false) {
+            $err = curl_error($fp);
+            $err_no = curl_errno($fp);
             curl_close($fp);
-            throw new \Exception(curl_error($fp), curl_errno($fp));
+            throw new \Exception($err, $err_no);
         }
 
         $headerSize = curl_getinfo($fp, CURLINFO_HEADER_SIZE);
